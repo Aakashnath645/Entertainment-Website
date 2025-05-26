@@ -104,7 +104,7 @@ export default function DatabaseInitPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-muted-foreground text-center">
-            Initialize your Supabase database with sample categories and articles to get started.
+            Initialize your Supabase database with content categories to get started.
           </p>
 
           {status === "success" && (
@@ -205,7 +205,6 @@ export default function DatabaseInitPage() {
             <p className="font-medium mb-2">This will create:</p>
             <ul className="list-disc list-inside space-y-1">
               <li>5 content categories (Gaming, Movies, TV, Tech, Esports)</li>
-              <li>3 sample articles with content</li>
               <li>Your user profile with admin permissions</li>
             </ul>
 

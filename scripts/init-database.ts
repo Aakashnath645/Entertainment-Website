@@ -87,17 +87,11 @@ export async function initializeDatabase(forceRefresh = false) {
 
     console.log("Existing articles:", existingArticles?.length || 0)
 
-    if (
-      !forceRefresh &&
-      existingCategories &&
-      existingCategories.length >= 5 &&
-      existingArticles &&
-      existingArticles.length > 0
-    ) {
+    if (!forceRefresh && existingCategories && existingCategories.length >= 5) {
       console.log("✅ Database already initialized")
       return {
         success: true,
-        message: `Database already contains ${existingCategories.length} categories and ${existingArticles.length} articles`,
+        message: `Database contains ${existingCategories.length} categories - ready for content`,
       }
     }
 
@@ -179,132 +173,14 @@ export async function initializeDatabase(forceRefresh = false) {
           await supabase.from("articles").delete().eq("author_id", user.id)
         }
 
-        const articlesToCreate = [
-          {
-            title: "The Future of Gaming: Next-Gen Consoles Deep Dive",
-            slug: "future-gaming-next-gen-consoles-deep-dive",
-            excerpt:
-              "An comprehensive analysis of the latest gaming consoles and what they mean for the future of interactive entertainment. From ray tracing to 120fps gaming, we explore it all.",
-            content: `# The Future of Gaming: Next-Gen Consoles Deep Dive
-
-The gaming industry has reached another pivotal moment with the release of next-generation consoles. These powerful machines are not just incremental upgrades—they represent a fundamental shift in how we experience interactive entertainment.
-
-## Revolutionary Hardware
-
-The new consoles feature custom AMD processors that deliver unprecedented performance. With support for ray tracing, 4K gaming at 120fps, and lightning-fast SSD storage, these systems are pushing the boundaries of what's possible.
-
-## Game-Changing Features
-
-- **Ray Tracing**: Realistic lighting and reflections
-- **3D Audio**: Immersive spatial sound design  
-- **Haptic Feedback**: Next-level controller vibration
-- **Quick Resume**: Instant switching between games
-
-## The Developer Perspective
-
-Game developers are excited about the creative possibilities these new systems unlock. From massive open worlds to photorealistic graphics, the future of gaming looks incredibly bright.
-
-## Conclusion
-
-As we move forward, these consoles will define gaming for the next decade. The question isn't whether to upgrade—it's which platform will best serve your gaming needs.`,
-            featured_image_url: "/placeholder.svg?height=400&width=800",
-            category_id: gamingCategory.id,
-            tags: ["gaming", "consoles", "hardware", "review"],
-            author_id: user.id,
-            status: "published",
-            publish_date: new Date().toISOString(),
-            view_count: 1250,
-          },
-          {
-            title: "Blockbuster Season: Must-Watch Movies This Summer",
-            slug: "blockbuster-season-must-watch-movies-summer",
-            excerpt:
-              "Your complete guide to the most anticipated movies hitting theaters this summer. From superhero spectacles to indie darlings, here's what you can't miss.",
-            content: `# Blockbuster Season: Must-Watch Movies This Summer
-
-Summer movie season is upon us, and this year's lineup is absolutely stacked with incredible films across every genre. Whether you're a fan of action-packed blockbusters or intimate character studies, there's something for everyone.
-
-## The Big Budget Spectacles
-
-This summer brings us several highly anticipated sequels and franchise entries that promise to deliver stunning visuals and heart-pounding action sequences.
-
-## Hidden Gems
-
-Don't overlook the smaller films that often become the season's biggest surprises. These indie darlings offer unique perspectives and innovative storytelling.
-
-## What to Expect
-
-- **Visual Effects**: Cutting-edge CGI and practical effects
-- **Star Power**: A-list actors in career-defining roles
-- **Diverse Stories**: Films from around the world
-- **Technical Innovation**: New filming techniques and technologies
-
-## Our Recommendations
-
-We've compiled a list of the absolute must-see films that will define this summer's cinema landscape.`,
-            featured_image_url: "/placeholder.svg?height=400&width=800",
-            category_id: moviesCategory.id,
-            tags: ["movies", "summer", "blockbuster", "cinema"],
-            author_id: user.id,
-            status: "published",
-            publish_date: new Date().toISOString(),
-            view_count: 2100,
-          },
-          {
-            title: "AI Revolution: How Machine Learning is Transforming Tech",
-            slug: "ai-revolution-machine-learning-transforming-tech",
-            excerpt:
-              "Artificial intelligence is no longer science fiction—it's reshaping every aspect of technology. Discover how AI is changing the world around us.",
-            content: `# AI Revolution: How Machine Learning is Transforming Tech
-
-Artificial intelligence has moved from the realm of science fiction into our daily lives. From the smartphones in our pockets to the cars we drive, AI is quietly revolutionizing technology in ways both subtle and profound.
-
-## The Current Landscape
-
-Today's AI systems can recognize faces, translate languages in real-time, and even create art. But this is just the beginning of what's possible.
-
-## Key Applications
-
-- **Healthcare**: AI-powered diagnostics and treatment
-- **Transportation**: Autonomous vehicles and traffic optimization
-- **Entertainment**: Personalized content recommendations
-- **Business**: Automated decision-making and analytics
-
-## Looking Forward
-
-As AI continues to evolve, we can expect even more dramatic changes in how we interact with technology and each other.
-
-## The Human Element
-
-Despite all the technological advancement, the human element remains crucial in guiding AI development responsibly.`,
-            featured_image_url: "/placeholder.svg?height=400&width=800",
-            category_id: techCategory.id,
-            tags: ["ai", "technology", "machine-learning", "innovation"],
-            author_id: user.id,
-            status: "published",
-            publish_date: new Date().toISOString(),
-            view_count: 1890,
-          },
-        ]
-
-        // Insert articles one by one to get better error handling
-        for (const article of articlesToCreate) {
-          const { error: articleError } = await supabase.from("articles").insert(article)
-
-          if (articleError) {
-            console.error(`❌ Error creating article "${article.title}":`, articleError.message)
-            throw new Error(`Error creating article "${article.title}": ${articleError.message}`)
-          }
-        }
-
-        console.log("✅ Sample articles created successfully")
+        console.log("✅ Categories setup complete - ready for content creation")
       }
     }
 
     console.log("🎉 Database initialization complete!")
     return {
       success: true,
-      message: "Database initialized successfully with sample categories and articles!",
+      message: "Database initialized successfully with categories!",
     }
   } catch (error: any) {
     console.error("❌ Database initialization failed:", error)
