@@ -1,14 +1,21 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Heart, MessageCircle, Share2, Bookmark } from "lucide-react"
+import { MessageCircle, Share2, Bookmark, ThumbsUp } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { formatDistanceToNow } from "date-fns"
 
 interface ArticleContentProps {
-  article: {
+  slug: string
+}
+
+export function ArticleContent({ slug }: ArticleContentProps) {
+  const [isLiked, setIsLiked] = useState(false)
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [likes, setLikes] = useState(0)
+  const [article, setArticle] = useState<{
     id: string
     title: string
     content: string
@@ -25,25 +32,52 @@ interface ArticleContentProps {
     like_count: number
     comment_count: number
     tags?: string[]
-  }
-}
+  } | null>(null)
 
-export function ArticleContent({ article }: ArticleContentProps) {
-  const [isLiked, setIsLiked] = useState(false)
-  const [isBookmarked, setIsBookmarked] = useState(false)
-  const [likeCount, setLikeCount] = useState(article.like_count || 0)
+  useEffect(() => {
+    async function fetchArticle() {
+      // Replace this with your actual data fetching logic
+      const mockArticle = {
+        id: "1",
+        title: "Sample Article",
+        content: "<p>This is the article content.</p>",
+        excerpt: "Sample article excerpt",
+        featured_image_url: "/placeholder.svg",
+        category: "Technology",
+        author: {
+          display_name: "John Doe",
+          username: "johndoe",
+          avatar_url: "/placeholder.svg",
+        },
+        created_at: new Date().toISOString(),
+        view_count: 100,
+        like_count: 50,
+        comment_count: 20,
+        tags: ["react", "javascript"],
+      }
+      setArticle(mockArticle)
+    }
+
+    fetchArticle()
+  }, [slug])
+
+  useEffect(() => {
+    if (article) {
+      setLikes(article.view_count || 0) // Using view_count as like count for demo
+    }
+  }, [article])
 
   const handleLike = () => {
     setIsLiked(!isLiked)
-    setLikeCount((prev) => (isLiked ? prev - 1 : prev + 1))
+    setLikes((prev) => (isLiked ? prev - 1 : prev + 1))
   }
 
   const handleShare = async () => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: article.title,
-          text: article.excerpt,
+          title: article?.title || "",
+          text: article?.excerpt || "",
           url: window.location.href,
         })
       } catch (error) {
@@ -53,6 +87,10 @@ export function ArticleContent({ article }: ArticleContentProps) {
       // Fallback: copy to clipboard
       navigator.clipboard.writeText(window.location.href)
     }
+  }
+
+  if (!article) {
+    return <div>Loading...</div>
   }
 
   return (
@@ -110,9 +148,9 @@ export function ArticleContent({ article }: ArticleContentProps) {
       {/* Article Actions */}
       <div className="flex items-center justify-between border-t border-b border-border py-4 mb-8">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={handleLike} className={`gap-2 ${isLiked ? "text-red-500" : ""}`}>
-            <Heart className={`h-4 w-4 ${isLiked ? "fill-current" : ""}`} />
-            {likeCount}
+          <Button variant="outline" size="sm" onClick={handleLike}>
+            <ThumbsUp className="w-4 h-4 mr-2" />
+            Like ({likes})
           </Button>
 
           <Button variant="ghost" size="sm" className="gap-2">
