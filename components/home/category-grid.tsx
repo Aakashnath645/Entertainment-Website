@@ -3,9 +3,10 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Calendar, User, Eye } from "lucide-react"
+import { Calendar, User, Eye, ArrowRight } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { supabase } from "@/lib/supabase"
 import type { Database } from "@/lib/database.types"
 
@@ -26,28 +27,14 @@ export function CategoryGrid() {
   useEffect(() => {
     async function fetchCategoriesWithArticles() {
       try {
-        console.log("🔍 Fetching categories and articles...")
-
-        // First, try to fetch categories with better error handling
+        // First, try to fetch categories
         const { data: categories, error: categoriesError } = await supabase.from("categories").select("*").order("name")
 
-        console.log("Categories result:", { categories, error: categoriesError })
-
-        if (categoriesError) {
-          console.log("❌ Categories error:", categoriesError.message)
+        if (categoriesError || !categories || categories.length === 0) {
           setCategoriesWithArticles(getDemoCategories())
           setLoading(false)
           return
         }
-
-        if (!categories || categories.length === 0) {
-          console.log("⚠️ No categories found")
-          setCategoriesWithArticles(getDemoCategories())
-          setLoading(false)
-          return
-        }
-
-        console.log(`✅ Found ${categories.length} categories`)
 
         // Fetch all published articles
         const { data: allArticles, error: articlesError } = await supabase
@@ -56,61 +43,37 @@ export function CategoryGrid() {
           .eq("status", "published")
           .order("publish_date", { ascending: false })
 
-        console.log("Articles result:", { count: allArticles?.length, error: articlesError })
-
-        if (articlesError) {
-          console.log("❌ Articles error:", articlesError.message)
+        if (articlesError || !allArticles || allArticles.length === 0) {
           setCategoriesWithArticles(getDemoCategories())
           setLoading(false)
           return
         }
-
-        if (!allArticles || allArticles.length === 0) {
-          console.log("⚠️ No published articles found")
-          setCategoriesWithArticles(getDemoCategories())
-          setLoading(false)
-          return
-        }
-
-        console.log(`✅ Found ${allArticles.length} published articles`)
 
         // Get unique author IDs
         const authorIds = [...new Set(allArticles.map((article) => article.author_id))]
-        console.log("Fetching users for IDs:", authorIds)
-
-        const { data: users, error: usersError } = await supabase.from("users").select("*").in("id", authorIds)
-
-        if (usersError) {
-          console.log("⚠️ Users error (continuing without user data):", usersError.message)
-        }
-
-        console.log(`✅ Found ${users?.length || 0} users`)
+        const { data: users } = await supabase.from("users").select("*").in("id", authorIds)
 
         // Group articles by category
         const categoriesWithArticles = categories
           .map((category) => {
             const categoryArticles = allArticles
               .filter((article) => article.category_id === category.id)
-              .slice(0, 4) // Limit to 4 articles per category
+              .slice(0, 4)
               .map((article) => ({
                 ...article,
                 categories: category,
                 users: users?.find((user) => user.id === article.author_id),
               }))
 
-            console.log(`Category ${category.name}: ${categoryArticles.length} articles`)
-
             return {
               category,
               articles: categoryArticles,
             }
           })
-          .filter((cat) => cat.articles.length > 0) // Only include categories with articles
+          .filter((cat) => cat.articles.length > 0)
 
-        console.log(`✅ Final result: ${categoriesWithArticles.length} categories with articles`)
         setCategoriesWithArticles(categoriesWithArticles)
       } catch (error) {
-        console.error("💥 Unexpected error fetching categories with articles:", error)
         setCategoriesWithArticles(getDemoCategories())
       } finally {
         setLoading(false)
@@ -257,16 +220,64 @@ export function CategoryGrid() {
           },
         ],
       },
+      {
+        category: {
+          id: "demo-tech",
+          name: "Technology",
+          slug: "tech",
+          description: "Latest tech news and gadget reviews",
+          color: "#ff6b35",
+          created_at: new Date().toISOString(),
+        },
+        articles: [
+          {
+            id: "demo-4",
+            title: "AI Revolution: How Machine Learning is Changing Entertainment",
+            slug: "ai-revolution-entertainment",
+            excerpt: "Exploring the impact of artificial intelligence on gaming, movies, and content creation.",
+            content: "",
+            featured_image_url: "/placeholder.svg?height=400&width=600",
+            category_id: "demo-tech",
+            tags: ["tech", "ai", "entertainment"],
+            author_id: "demo-author-3",
+            status: "published" as const,
+            publish_date: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            view_count: 1850,
+            seo_meta: null,
+            categories: {
+              id: "demo-tech",
+              name: "Technology",
+              slug: "tech",
+              description: "Latest tech news and gadget reviews",
+              color: "#ff6b35",
+              created_at: new Date().toISOString(),
+            },
+            users: {
+              id: "demo-author-3",
+              email: "demo3@example.com",
+              username: "techguru",
+              display_name: "Mike Rodriguez",
+              avatar_url: "/placeholder.svg?height=40&width=40",
+              bio: "Technology analyst and reviewer",
+              role: "writer" as const,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+          },
+        ],
+      },
     ]
   }
 
   if (loading) {
     return (
-      <div className="space-y-8">
+      <div className="space-y-12">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="space-y-4">
+          <div key={i} className="space-y-6">
             <div className="h-8 w-32 skeleton" />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {[1, 2, 3, 4].map((j) => (
                 <div key={j} className="h-64 skeleton rounded-lg" />
               ))}
@@ -279,36 +290,31 @@ export function CategoryGrid() {
 
   if (categoriesWithArticles.length === 0) {
     return (
-      <div className="text-center py-12">
-        <h3 className="text-xl font-semibold mb-4">No Content Available</h3>
-        <p className="text-muted-foreground mb-6">
-          It looks like your database hasn't been set up yet or doesn't contain any published articles.
-        </p>
-        <Link
-          href="/admin/init"
-          className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-        >
-          Initialize Database
-        </Link>
+      <div className="text-center py-16">
+        <h3 className="text-2xl font-semibold mb-4">Coming Soon</h3>
+        <p className="text-muted-foreground text-lg">We're preparing amazing content for you. Check back soon!</p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-16">
       {categoriesWithArticles.map(({ category, articles }) => (
         <section key={category.id}>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold flex items-center space-x-3">
-              <span className="w-1 h-8 rounded-full" style={{ backgroundColor: category.color }} />
-              <span>{category.name}</span>
-            </h2>
-            <Link
-              href={`/${category.slug}`}
-              className="text-primary hover:text-primary/80 transition-colors font-medium"
-            >
-              View All →
-            </Link>
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center space-x-4">
+              <div className="w-1 h-12 rounded-full" style={{ backgroundColor: category.color }} />
+              <div>
+                <h2 className="text-3xl font-bold">{category.name}</h2>
+                <p className="text-muted-foreground">{category.description}</p>
+              </div>
+            </div>
+            <Button variant="outline" asChild className="group">
+              <Link href={`/${category.slug}`} className="flex items-center space-x-2">
+                <span>View All</span>
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+            </Button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -325,7 +331,7 @@ export function CategoryGrid() {
 function ArticleCard({ article, featured }: { article: Article; featured?: boolean }) {
   return (
     <Card className={`group glow-effect overflow-hidden ${featured ? "md:col-span-2" : ""}`}>
-      <div className={`relative ${featured ? "h-64" : "h-48"}`}>
+      <div className={`relative ${featured ? "h-72" : "h-48"}`}>
         {article.featured_image_url ? (
           <Image
             src={article.featured_image_url || "/placeholder.svg"}
@@ -347,18 +353,18 @@ function ArticleCard({ article, featured }: { article: Article; featured?: boole
         </div>
       </div>
 
-      <CardContent className="p-4">
+      <CardContent className="p-6">
         <Link href={`/articles/${article.slug}`}>
           <h3
-            className={`font-bold mb-2 hover:text-primary transition-colors cursor-pointer line-clamp-2 ${
-              featured ? "text-xl" : "text-lg"
+            className={`font-bold mb-3 hover:text-primary transition-colors cursor-pointer line-clamp-2 ${
+              featured ? "text-2xl" : "text-lg"
             }`}
           >
             {article.title}
           </h3>
         </Link>
 
-        <p className="text-muted-foreground mb-4 line-clamp-2">{article.excerpt}</p>
+        <p className="text-muted-foreground mb-4 line-clamp-2 leading-relaxed">{article.excerpt}</p>
 
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <div className="flex items-center space-x-4">

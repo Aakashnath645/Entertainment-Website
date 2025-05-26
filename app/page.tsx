@@ -4,21 +4,13 @@ import { CategoryGrid } from "@/components/home/category-grid"
 import { TrendingSidebar } from "@/components/home/trending-sidebar"
 import { NewsletterSignup } from "@/components/home/newsletter-signup"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { DatabaseStatus } from "@/components/ui/database-status"
-import { SetupGuide } from "@/components/setup/setup-guide"
 
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto px-4 py-8">
-        {/* Setup Guide */}
-        <SetupGuide />
-
-        {/* Database Status */}
-        <DatabaseStatus />
-
         {/* Hero Section */}
-        <Suspense fallback={<div className="h-96 skeleton" />}>
+        <Suspense fallback={<div className="h-96 skeleton rounded-xl mb-12" />}>
           <HeroSection />
         </Suspense>
 
@@ -32,7 +24,7 @@ export default function HomePage() {
 
           {/* Sidebar */}
           <div className="space-y-8">
-            <Suspense fallback={<div className="h-64 skeleton" />}>
+            <Suspense fallback={<div className="h-64 skeleton rounded-lg" />}>
               <TrendingSidebar />
             </Suspense>
             <NewsletterSignup />
