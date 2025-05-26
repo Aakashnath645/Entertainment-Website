@@ -19,53 +19,83 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
   const [dragActive, setDragActive] = useState(false)
   const { toast } = useToast()
 
+  const createBucket = async () => {
+    try {
+      // First check if bucket exists
+      const { data: buckets } = await supabase.storage.listBuckets()
+      const bucketExists = buckets?.some((bucket) => bucket.name === "article-images")
+
+      if (bucketExists) {
+        return true
+      }
+
+      // Create the bucket
+      const { error: createError } = await supabase.storage.createBucket("article-images", {
+        public: true,
+        allowedMimeTypes: ["image/jpeg", "image/png", "image/gif", "image/webp"],
+        fileSizeLimit: 5242880, // 5MB
+      })
+
+      if (createError) {
+        console.error("Error creating bucket:", createError)
+
+        // If we can't create bucket, try without restrictions
+        const { error: simpleCreateError } = await supabase.storage.createBucket("article-images", {
+          public: true,
+        })
+
+        if (simpleCreateError) {
+          throw new Error(`Failed to create storage bucket: ${simpleCreateError.message}`)
+        }
+      }
+
+      return true
+    } catch (error: any) {
+      console.error("Bucket creation error:", error)
+      throw new Error(`Storage setup failed: ${error.message}`)
+    }
+  }
+
   const uploadImage = async (file: File) => {
     try {
       setUploading(true)
 
       // Validate file
       if (!file.type.startsWith("image/")) {
-        throw new Error("Please select an image file")
+        throw new Error("Please select an image file (JPEG, PNG, GIF, WebP)")
       }
 
       if (file.size > 5 * 1024 * 1024) {
         throw new Error("Image size must be less than 5MB")
       }
 
+      // Ensure bucket exists
+      await createBucket()
+
       // Create unique filename
-      const fileExt = file.name.split(".").pop()
+      const fileExt = file.name.split(".").pop()?.toLowerCase() || "jpg"
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
       const filePath = `articles/${fileName}`
 
       // Upload to Supabase Storage
-      const { error } = await supabase.storage.from("article-images").upload(filePath, file, {
+      const { data, error } = await supabase.storage.from("article-images").upload(filePath, file, {
         cacheControl: "3600",
         upsert: false,
       })
 
       if (error) {
-        // Try to create bucket if it doesn't exist
-        if (error.message.includes("Bucket not found")) {
-          await supabase.storage.createBucket("article-images", {
-            public: true,
-          })
-
-          // Retry upload
-          const { error: retryError } = await supabase.storage.from("article-images").upload(filePath, file, {
-            cacheControl: "3600",
-            upsert: false,
-          })
-
-          if (retryError) throw retryError
-        } else {
-          throw error
-        }
+        console.error("Upload error:", error)
+        throw new Error(`Upload failed: ${error.message}`)
       }
 
       // Get public URL
-      const { data } = supabase.storage.from("article-images").getPublicUrl(filePath)
+      const { data: urlData } = supabase.storage.from("article-images").getPublicUrl(filePath)
 
-      onChange(data.publicUrl)
+      if (!urlData.publicUrl) {
+        throw new Error("Failed to get public URL for uploaded image")
+      }
+
+      onChange(urlData.publicUrl)
 
       toast({
         title: "Success",
@@ -161,7 +191,7 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
               </label>
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">PNG, JPG, GIF up to 5MB</p>
+          <p className="text-xs text-muted-foreground mt-2">PNG, JPG, GIF, WebP up to 5MB</p>
         </div>
       )}
     </div>
