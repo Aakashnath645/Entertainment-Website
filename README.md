@@ -1,4 +1,4 @@
-# IGN Entertainment Website
+# Entertainment Website
 
 A modern entertainment news website built with Next.js 15, Supabase, and Tailwind CSS. Features real-time content management, user authentication, and a comprehensive admin panel.
 
