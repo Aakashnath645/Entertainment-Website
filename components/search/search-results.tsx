@@ -3,314 +3,274 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import Link from "next/link"
-import Image from "next/image"
-import { Search, Calendar, User, Eye } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { supabase } from "@/lib/supabase"
-import type { Database } from "@/lib/database.types"
+import { Input } from "@/components/ui/input"
+import { Search, Filter, Calendar, User, Eye } from "lucide-react"
+import Link from "next/link"
+import { formatDistanceToNow } from "date-fns"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 
-type Article = Database["public"]["Tables"]["articles"]["Row"] & {
-  categories?: Database["public"]["Tables"]["categories"]["Row"]
-  users?: Database["public"]["Tables"]["users"]["Row"]
+interface SearchResult {
+  id: string
+  title: string
+  excerpt: string
+  slug: string
+  category: string
+  author: {
+    display_name: string
+    username: string
+  }
+  created_at: string
+  view_count: number
+  featured_image_url?: string
 }
 
 interface SearchResultsProps {
-  query: string
+  initialQuery?: string
 }
 
-export function SearchResults({ query: initialQuery }: SearchResultsProps) {
+export function SearchResults({ initialQuery = "" }: SearchResultsProps) {
   const [query, setQuery] = useState(initialQuery)
-  const [articles, setArticles] = useState<Article[]>([])
-  const [loading, setLoading] = useState(true)
-  const [sortBy, setSortBy] = useState("relevance")
-  const [categoryFilter, setCategoryFilter] = useState("all")
-  const [categories, setCategories] = useState<Database["public"]["Tables"]["categories"]["Row"][]>([])
+  const [results, setResults] = useState<SearchResult[]>([])
+  const [loading, setLoading] = useState(false)
+  const [category, setCategory] = useState<string>("all")
+  const [sortBy, setSortBy] = useState<string>("relevance")
+  const supabase = createClientComponentClient()
+
+  const categories = [
+    { value: "all", label: "All Categories" },
+    { value: "gaming", label: "Gaming" },
+    { value: "movies", label: "Movies" },
+    { value: "tv-shows", label: "TV Shows" },
+    { value: "tech", label: "Tech" },
+    { value: "esports", label: "Esports" },
+  ]
+
+  const sortOptions = [
+    { value: "relevance", label: "Relevance" },
+    { value: "newest", label: "Newest First" },
+    { value: "oldest", label: "Oldest First" },
+    { value: "most_viewed", label: "Most Viewed" },
+  ]
 
   useEffect(() => {
-    async function fetchCategories() {
-      try {
-        const { data } = await supabase.from("categories").select("*").order("name")
-        if (data) setCategories(data)
-      } catch (error) {
-        console.log("Error fetching categories:", error)
-      }
+    if (query.trim()) {
+      performSearch()
+    } else {
+      setResults([])
     }
-    fetchCategories()
-  }, [])
+  }, [query, category, sortBy])
 
-  useEffect(() => {
-    async function searchArticles() {
-      if (!query.trim()) {
-        setArticles([])
-        setLoading(false)
-        return
+  const performSearch = async () => {
+    setLoading(true)
+    try {
+      let searchQuery = supabase
+        .from("articles")
+        .select(`
+          id,
+          title,
+          excerpt,
+          slug,
+          category,
+          created_at,
+          view_count,
+          featured_image_url,
+          author:profiles(display_name, username)
+        `)
+        .eq("status", "published")
+        .or(`title.ilike.%${query}%,excerpt.ilike.%${query}%,content.ilike.%${query}%`)
+
+      if (category !== "all") {
+        searchQuery = searchQuery.eq("category", category)
       }
 
-      setLoading(true)
-      try {
-        let queryBuilder = supabase.from("articles").select("*").eq("status", "published")
-
-        // Apply text search
-        if (query.trim()) {
-          queryBuilder = queryBuilder.or(`title.ilike.%${query}%,excerpt.ilike.%${query}%,content.ilike.%${query}%`)
-        }
-
-        // Apply category filter
-        if (categoryFilter !== "all") {
-          queryBuilder = queryBuilder.eq("category_id", categoryFilter)
-        }
-
-        // Apply sorting
-        switch (sortBy) {
-          case "newest":
-            queryBuilder = queryBuilder.order("publish_date", { ascending: false })
-            break
-          case "oldest":
-            queryBuilder = queryBuilder.order("publish_date", { ascending: true })
-            break
-          case "popular":
-            queryBuilder = queryBuilder.order("view_count", { ascending: false })
-            break
-          default:
-            queryBuilder = queryBuilder.order("created_at", { ascending: false })
-        }
-
-        const { data: articlesData, error } = await queryBuilder.limit(50)
-
-        if (error || !articlesData) {
-          console.log("Search error or no results, showing demo data")
-          setArticles(getDemoSearchResults(query))
-          setLoading(false)
-          return
-        }
-
-        // Fetch related data
-        const categoryIds = [...new Set(articlesData.map((article) => article.category_id))]
-        const authorIds = [...new Set(articlesData.map((article) => article.author_id))]
-
-        const [categoriesResult, usersResult] = await Promise.all([
-          supabase.from("categories").select("*").in("id", categoryIds),
-          supabase.from("users").select("*").in("id", authorIds),
-        ])
-
-        const articlesWithRelations = articlesData.map((article) => ({
-          ...article,
-          categories: categoriesResult.data?.find((cat) => cat.id === article.category_id),
-          users: usersResult.data?.find((user) => user.id === article.author_id),
-        }))
-
-        setArticles(articlesWithRelations)
-      } catch (error) {
-        console.log("Search error:", error)
-        setArticles(getDemoSearchResults(query))
-      } finally {
-        setLoading(false)
+      // Apply sorting
+      switch (sortBy) {
+        case "newest":
+          searchQuery = searchQuery.order("created_at", { ascending: false })
+          break
+        case "oldest":
+          searchQuery = searchQuery.order("created_at", { ascending: true })
+          break
+        case "most_viewed":
+          searchQuery = searchQuery.order("view_count", { ascending: false })
+          break
+        default:
+          searchQuery = searchQuery.order("created_at", { ascending: false })
       }
+
+      const { data, error } = await searchQuery.limit(20)
+
+      if (error) throw error
+      setResults(data || [])
+    } catch (error) {
+      console.error("Search error:", error)
+      setResults([])
+    } finally {
+      setLoading(false)
     }
-
-    searchArticles()
-  }, [query, sortBy, categoryFilter])
-
-  function getDemoSearchResults(searchQuery: string): Article[] {
-    if (!searchQuery.trim()) return []
-
-    return [
-      {
-        id: "demo-search-1",
-        title: `Search Result: ${searchQuery} in Entertainment`,
-        slug: "search-result-entertainment",
-        excerpt: `This is a demo search result for "${searchQuery}". In a real application, this would show actual matching content.`,
-        content: "",
-        featured_image_url: "/placeholder.svg?height=400&width=600",
-        category_id: "demo-category",
-        tags: ["search", "demo", searchQuery.toLowerCase()],
-        author_id: "demo-author",
-        status: "published" as const,
-        publish_date: new Date().toISOString(),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        view_count: 1500,
-        seo_meta: null,
-        categories: {
-          id: "demo-category",
-          name: "General",
-          slug: "general",
-          description: "General entertainment content",
-          color: "#00d4ff",
-          created_at: new Date().toISOString(),
-        },
-        users: {
-          id: "demo-author",
-          email: "demo@example.com",
-          username: "searcher",
-          display_name: "Demo Author",
-          avatar_url: "/placeholder.svg?height=40&width=40",
-          bio: "Content creator",
-          role: "writer" as const,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      },
-    ]
   }
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    // Update URL with search query
-    const url = new URL(window.location.href)
-    url.searchParams.set("q", query)
-    window.history.pushState({}, "", url.toString())
+    performSearch()
   }
 
   return (
-    <div className="space-y-8">
+    <div className="max-w-6xl mx-auto px-4 py-8">
       {/* Search Header */}
-      <div className="text-center space-y-4">
-        <h1 className="text-4xl font-bold neon-text">Search Results</h1>
-        {initialQuery && (
-          <p className="text-xl text-muted-foreground">
-            Results for: <span className="text-primary">"{initialQuery}"</span>
-          </p>
-        )}
-      </div>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-4">Search Articles</h1>
 
-      {/* Search Form */}
-      <Card className="p-6">
-        <form onSubmit={handleSearch} className="space-y-4">
+        {/* Search Form */}
+        <form onSubmit={handleSearch} className="mb-6">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
-              type="search"
-              placeholder="Search articles, reviews, and news..."
+              type="text"
+              placeholder="Search articles, reviews, news..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="pl-12 text-lg h-12"
+              className="pl-10 pr-4 py-3 text-lg"
             />
           </div>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder="All Categories" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="relevance">Most Relevant</SelectItem>
-                <SelectItem value="newest">Newest First</SelectItem>
-                <SelectItem value="oldest">Oldest First</SelectItem>
-                <SelectItem value="popular">Most Popular</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button type="submit" className="w-full sm:w-auto">
-              Search
-            </Button>
-          </div>
         </form>
-      </Card>
 
-      {/* Results */}
+        {/* Filters */}
+        <div className="flex flex-wrap gap-4 items-center">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Filters:</span>
+          </div>
+
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="px-3 py-1 rounded-md border border-border bg-background text-sm"
+          >
+            {categories.map((cat) => (
+              <option key={cat.value} value={cat.value}>
+                {cat.label}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="px-3 py-1 rounded-md border border-border bg-background text-sm"
+          >
+            {sortOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Search Results */}
       {loading ? (
-        <div className="space-y-6">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-32 skeleton rounded-lg" />
+        <div className="space-y-4">
+          {[...Array(5)].map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardContent className="p-6">
+                <div className="flex gap-4">
+                  <div className="w-24 h-24 bg-muted rounded-lg"></div>
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-muted rounded w-3/4"></div>
+                    <div className="h-3 bg-muted rounded w-1/2"></div>
+                    <div className="h-3 bg-muted rounded w-full"></div>
+                    <div className="h-3 bg-muted rounded w-2/3"></div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
-      ) : articles.length === 0 ? (
-        <div className="text-center py-12">
-          <Search className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="text-xl font-semibold mb-4">{query.trim() ? "No Results Found" : "Enter a search term"}</h3>
-          <p className="text-muted-foreground">
-            {query.trim()
-              ? "Try adjusting your search terms or browse our categories."
-              : "Search for articles, reviews, and news across all entertainment categories."}
-          </p>
-        </div>
-      ) : (
+      ) : results.length > 0 ? (
         <div className="space-y-6">
           <div className="text-sm text-muted-foreground">
-            Found {articles.length} {articles.length === 1 ? "result" : "results"}
+            Found {results.length} result{results.length !== 1 ? "s" : ""} for "{query}"
           </div>
-          {articles.map((article) => (
-            <SearchResultCard key={article.id} article={article} query={query} />
+
+          {results.map((article) => (
+            <Card key={article.id} className="hover:shadow-lg transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex gap-4">
+                  {article.featured_image_url && (
+                    <div className="w-24 h-24 flex-shrink-0">
+                      <img
+                        src={article.featured_image_url || "/placeholder.svg"}
+                        alt={article.title}
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge variant="secondary" className="text-xs">
+                        {article.category}
+                      </Badge>
+                    </div>
+
+                    <Link href={`/articles/${article.slug}`}>
+                      <h3 className="text-xl font-semibold mb-2 hover:text-primary transition-colors line-clamp-2">
+                        {article.title}
+                      </h3>
+                    </Link>
+
+                    <p className="text-muted-foreground mb-3 line-clamp-2">{article.excerpt}</p>
+
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-1">
+                          <User className="h-3 w-3" />
+                          <span>{article.author.display_name}</span>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          <span>{formatDistanceToNow(new Date(article.created_at))} ago</span>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          <Eye className="h-3 w-3" />
+                          <span>{article.view_count} views</span>
+                        </div>
+                      </div>
+
+                      <Link href={`/articles/${article.slug}`}>
+                        <Button variant="ghost" size="sm">
+                          Read More
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           ))}
+        </div>
+      ) : query.trim() ? (
+        <div className="text-center py-12">
+          <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No results found</h3>
+          <p className="text-muted-foreground mb-4">Try adjusting your search terms or filters</p>
+          <Button variant="outline" onClick={() => setQuery("")}>
+            Clear Search
+          </Button>
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Start searching</h3>
+          <p className="text-muted-foreground">Enter a search term to find articles, reviews, and news</p>
         </div>
       )}
     </div>
-  )
-}
-
-function SearchResultCard({ article, query }: { article: Article; query: string }) {
-  const highlightText = (text: string, searchQuery: string) => {
-    if (!searchQuery.trim()) return text
-    const regex = new RegExp(`(${searchQuery})`, "gi")
-    return text.replace(regex, "<mark class='bg-primary/20 text-primary'>$1</mark>")
-  }
-
-  return (
-    <Card className="group glow-effect overflow-hidden">
-      <div className="flex">
-        <div className="relative w-48 h-32 flex-shrink-0">
-          {article.featured_image_url ? (
-            <Image
-              src={article.featured_image_url || "/placeholder.svg"}
-              alt={article.title}
-              fill
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
-            />
-          ) : (
-            <div className="w-full h-full bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center">
-              <span className="text-2xl opacity-50">📰</span>
-            </div>
-          )}
-        </div>
-        <CardContent className="flex-1 p-4">
-          <div className="flex items-start justify-between mb-2">
-            <Badge variant="secondary" style={{ backgroundColor: article.categories?.color || "#666" }}>
-              {article.categories?.name || "General"}
-            </Badge>
-            <div className="flex items-center space-x-1 text-xs text-muted-foreground">
-              <Eye className="w-3 h-3" />
-              <span>{article.view_count}</span>
-            </div>
-          </div>
-          <Link href={`/articles/${article.slug}`}>
-            <h3
-              className="font-bold text-lg mb-2 hover:text-primary transition-colors cursor-pointer line-clamp-2"
-              dangerouslySetInnerHTML={{ __html: highlightText(article.title, query) }}
-            />
-          </Link>
-          <p
-            className="text-muted-foreground mb-3 line-clamp-2"
-            dangerouslySetInnerHTML={{ __html: highlightText(article.excerpt, query) }}
-          />
-          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-            <div className="flex items-center space-x-1">
-              <User className="w-3 h-3" />
-              <span>{article.users?.display_name || article.users?.username || "Anonymous"}</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <Calendar className="w-3 h-3" />
-              <span>{new Date(article.publish_date || article.created_at).toLocaleDateString()}</span>
-            </div>
-          </div>
-        </CardContent>
-      </div>
-    </Card>
   )
 }
