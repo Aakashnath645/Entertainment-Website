@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/lib/supabase"
-import { CheckCircle, XCircle, Loader2, AlertTriangle, Copy } from "lucide-react"
+import { CheckCircle, XCircle, Loader2, Copy, ExternalLink } from "lucide-react"
 
 export default function StorageSetupPage() {
   const [checking, setChecking] = useState(false)
@@ -26,10 +26,10 @@ export default function StorageSetupPage() {
       setBucketExists(exists)
 
       toast({
-        title: exists ? "Bucket Found!" : "Bucket Not Found",
+        title: exists ? "✅ Bucket Found!" : "❌ Bucket Not Found",
         description: exists
           ? "The article-images bucket exists and is ready to use"
-          : "The article-images bucket needs to be created manually",
+          : "The article-images bucket needs to be created",
         variant: exists ? "default" : "destructive",
       })
     } catch (error: any) {
@@ -44,43 +44,22 @@ export default function StorageSetupPage() {
     }
   }
 
-  const copySQL = async () => {
-    const sqlScript = `-- Create storage bucket for article images
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types, created_at, updated_at)
-VALUES (
-  'article-images',
-  'article-images',
-  true,
-  5242880,
-  ARRAY['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
-  NOW(),
-  NOW()
-)
-ON CONFLICT (id) DO UPDATE SET
-  public = EXCLUDED.public,
-  file_size_limit = EXCLUDED.file_size_limit,
-  allowed_mime_types = EXCLUDED.allowed_mime_types,
-  updated_at = NOW();
-
--- Create policies
-INSERT INTO storage.policies (id, bucket_id, name, definition, check_definition, command, roles)
-VALUES 
-  ('article-images-public-read', 'article-images', 'Public Access', 'bucket_id = ''article-images''', NULL, 'SELECT', ARRAY['public', 'authenticated', 'anon']),
-  ('article-images-auth-insert', 'article-images', 'Authenticated users can upload', NULL, 'bucket_id = ''article-images'' AND auth.role() = ''authenticated''', 'INSERT', ARRAY['authenticated']),
-  ('article-images-auth-update', 'article-images', 'Users can update own uploads', 'bucket_id = ''article-images''', 'bucket_id = ''article-images''', 'UPDATE', ARRAY['authenticated']),
-  ('article-images-auth-delete', 'article-images', 'Users can delete own uploads', 'bucket_id = ''article-images''', 'bucket_id = ''article-images''', 'DELETE', ARRAY['authenticated'])
+  const copyMinimalSQL = async () => {
+    const sqlScript = `-- Minimal storage bucket creation
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('article-images', 'article-images', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Verify creation
-SELECT id, name, public, file_size_limit FROM storage.buckets WHERE id = 'article-images';`
+SELECT id, name, public, created_at FROM storage.buckets WHERE id = 'article-images';`
 
     try {
       await navigator.clipboard.writeText(sqlScript)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
       toast({
-        title: "SQL Copied!",
-        description: "The SQL script has been copied to your clipboard",
+        title: "✅ SQL Copied!",
+        description: "The minimal SQL script has been copied to your clipboard",
       })
     } catch (error) {
       toast({
@@ -95,15 +74,15 @@ SELECT id, name, public, file_size_limit FROM storage.buckets WHERE id = 'articl
     <div className="container mx-auto py-8">
       <Card className="max-w-4xl mx-auto">
         <CardHeader>
-          <CardTitle>Storage Setup - Manual Creation Required</CardTitle>
+          <CardTitle>🗄️ Storage Setup - Minimal Approach</CardTitle>
           <CardDescription>
-            Due to RLS policies, the storage bucket must be created manually in your Supabase dashboard.
+            Create the storage bucket using the simplest possible method that works with all Supabase versions.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between p-4 border rounded-lg">
             <div>
-              <h3 className="font-medium">Article Images Bucket Status</h3>
+              <h3 className="font-medium">📁 Article Images Bucket</h3>
               <p className="text-sm text-muted-foreground">Storage bucket for article featured images</p>
             </div>
             <div className="flex items-center gap-2">
@@ -115,83 +94,95 @@ SELECT id, name, public, file_size_limit FROM storage.buckets WHERE id = 'articl
 
           <div className="flex gap-4">
             <Button onClick={checkBucket} disabled={checking} variant="outline">
-              {checking && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Check Bucket Status
+              {checking && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}🔍 Check Bucket Status
             </Button>
 
-            <Button onClick={copySQL} variant="default">
+            <Button onClick={copyMinimalSQL} variant="default">
               <Copy className="w-4 h-4 mr-2" />
-              {copied ? "Copied!" : "Copy SQL Script"}
+              {copied ? "✅ Copied!" : "📋 Copy Minimal SQL"}
             </Button>
           </div>
 
-          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
-              <div>
-                <h4 className="font-medium text-yellow-800">Manual Setup Required</h4>
-                <p className="text-sm text-yellow-700 mt-1">
-                  The RLS policy prevents automatic bucket creation. Please follow these steps:
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-4 bg-muted rounded-lg">
-            <h4 className="font-medium mb-3">Step-by-Step Instructions:</h4>
-            <ol className="text-sm space-y-2 list-decimal list-inside">
+          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+            <h4 className="font-medium text-green-800 mb-3">🎯 Recommended: SQL Editor Method</h4>
+            <ol className="text-sm space-y-2 list-decimal list-inside text-green-700">
               <li>
-                Go to your <strong>Supabase Dashboard</strong>
+                Click <strong>"📋 Copy Minimal SQL"</strong> button above
               </li>
               <li>
-                Navigate to <strong>SQL Editor</strong>
+                Open your <strong>Supabase Dashboard</strong> in a new tab
               </li>
               <li>
-                Click <strong>"New Query"</strong>
-              </li>
-              <li>Copy and paste the SQL script (use the "Copy SQL Script" button above)</li>
-              <li>
-                Click <strong>"Run"</strong> to execute the script
+                Go to <strong>SQL Editor</strong> (left sidebar)
               </li>
               <li>
-                Come back here and click <strong>"Check Bucket Status"</strong> to verify
+                Click <strong>"+ New query"</strong>
+              </li>
+              <li>Paste the copied SQL script</li>
+              <li>
+                Click <strong>"▶ Run"</strong> button
+              </li>
+              <li>
+                Return here and click <strong>"🔍 Check Bucket Status"</strong>
               </li>
             </ol>
           </div>
 
-          <div className="p-4 bg-muted rounded-lg">
-            <h4 className="font-medium mb-2">Alternative: Manual UI Creation</h4>
-            <ol className="text-sm space-y-1 list-decimal list-inside">
-              <li>Go to your Supabase project dashboard</li>
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h4 className="font-medium text-blue-800 mb-3">🖱️ Alternative: Storage UI Method</h4>
+            <ol className="text-sm space-y-2 list-decimal list-inside text-blue-700">
+              <li>Go to your Supabase Dashboard</li>
               <li>
-                Navigate to <strong>Storage</strong> section
+                Click <strong>"Storage"</strong> in the left sidebar
               </li>
               <li>
-                Click <strong>"Create a new bucket"</strong>
+                Click <strong>"Create a new bucket"</strong> button
               </li>
               <li>
-                Name it <strong>"article-images"</strong>
+                Enter bucket name: <code className="bg-white px-1 rounded">article-images</code>
               </li>
               <li>
-                Make it <strong>public</strong>
+                ✅ Check <strong>"Public bucket"</strong>
               </li>
               <li>
-                Set file size limit to <strong>5MB</strong>
+                Click <strong>"Create bucket"</strong>
               </li>
-              <li>
-                Add allowed MIME types: <code>image/jpeg, image/png, image/gif, image/webp</code>
-              </li>
+              <li>Return here and check bucket status</li>
             </ol>
+          </div>
+
+          <div className="p-4 bg-gray-50 border rounded-lg">
+            <h4 className="font-medium mb-2">📝 What This Creates:</h4>
+            <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+              <li>A public storage bucket named "article-images"</li>
+              <li>Accessible for uploading images from your application</li>
+              <li>Public read access for displaying images on your website</li>
+              <li>No complex policies that might cause syntax errors</li>
+            </ul>
           </div>
 
           {bucketExists === true && (
             <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
               <div className="flex items-center gap-2">
                 <CheckCircle className="w-5 h-5 text-green-600" />
-                <h4 className="font-medium text-green-800">Storage Ready!</h4>
+                <h4 className="font-medium text-green-800">🎉 Storage Ready!</h4>
               </div>
               <p className="text-sm text-green-700 mt-1">
-                The article-images bucket is now available. You can upload images in the article editor.
+                The article-images bucket is now available. You can upload images in the article editor!
+              </p>
+              <Button className="mt-3" size="sm" onClick={() => window.open("/admin/articles/new", "_blank")}>
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Test Image Upload
+              </Button>
+            </div>
+          )}
+
+          {bucketExists === false && (
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <h4 className="font-medium text-yellow-800 mb-2">⚠️ Bucket Not Found</h4>
+              <p className="text-sm text-yellow-700">
+                Please use one of the methods above to create the storage bucket. The minimal SQL approach should work
+                with any Supabase version.
               </p>
             </div>
           )}
