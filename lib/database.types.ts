@@ -1,0 +1,186 @@
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+
+export interface Database {
+  public: {
+    Tables: {
+      users: {
+        Row: {
+          id: string
+          email: string
+          username: string
+          display_name: string | null
+          avatar_url: string | null
+          bio: string | null
+          role: "admin" | "editor" | "writer" | "user"
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          email: string
+          username: string
+          display_name?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          role?: "admin" | "editor" | "writer" | "user"
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          email?: string
+          username?: string
+          display_name?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          role?: "admin" | "editor" | "writer" | "user"
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      categories: {
+        Row: {
+          id: string
+          name: string
+          slug: string
+          description: string | null
+          color: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          slug: string
+          description?: string | null
+          color: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          slug?: string
+          description?: string | null
+          color?: string
+          created_at?: string
+        }
+      }
+      articles: {
+        Row: {
+          id: string
+          title: string
+          slug: string
+          excerpt: string
+          content: string
+          featured_image_url: string | null
+          category_id: string
+          tags: string[]
+          author_id: string
+          status: "draft" | "published" | "archived"
+          publish_date: string | null
+          created_at: string
+          updated_at: string
+          view_count: number
+          seo_meta: Json | null
+        }
+        Insert: {
+          id?: string
+          title: string
+          slug: string
+          excerpt: string
+          content: string
+          featured_image_url?: string | null
+          category_id: string
+          tags?: string[]
+          author_id: string
+          status?: "draft" | "published" | "archived"
+          publish_date?: string | null
+          created_at?: string
+          updated_at?: string
+          view_count?: number
+          seo_meta?: Json | null
+        }
+        Update: {
+          id?: string
+          title?: string
+          slug?: string
+          excerpt?: string
+          content?: string
+          featured_image_url?: string | null
+          category_id?: string
+          tags?: string[]
+          author_id?: string
+          status?: "draft" | "published" | "archived"
+          publish_date?: string | null
+          created_at?: string
+          updated_at?: string
+          view_count?: number
+          seo_meta?: Json | null
+        }
+      }
+      reviews: {
+        Row: {
+          id: string
+          article_id: string
+          overall_score: number
+          score_breakdown: Json
+          pros_list: string[]
+          cons_list: string[]
+          recommendation_text: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          article_id: string
+          overall_score: number
+          score_breakdown: Json
+          pros_list: string[]
+          cons_list: string[]
+          recommendation_text: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          article_id?: string
+          overall_score?: number
+          score_breakdown?: Json
+          pros_list?: string[]
+          cons_list?: string[]
+          recommendation_text?: string
+          created_at?: string
+        }
+      }
+      comments: {
+        Row: {
+          id: string
+          article_id: string
+          user_id: string
+          content: string
+          parent_comment_id: string | null
+          status: "approved" | "pending" | "rejected"
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          article_id: string
+          user_id: string
+          content: string
+          parent_comment_id?: string | null
+          status?: "approved" | "pending" | "rejected"
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          article_id?: string
+          user_id?: string
+          content?: string
+          parent_comment_id?: string | null
+          status?: "approved" | "pending" | "rejected"
+          created_at?: string
+          updated_at?: string
+        }
+      }
+    }
+  }
+}
