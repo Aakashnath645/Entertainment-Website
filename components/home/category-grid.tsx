@@ -31,7 +31,7 @@ export function CategoryGrid() {
         const { data: categories, error: categoriesError } = await supabase.from("categories").select("*").order("name")
 
         if (categoriesError || !categories || categories.length === 0) {
-          setCategoriesWithArticles(getDemoCategories())
+          setCategoriesWithArticles([])
           setLoading(false)
           return
         }
@@ -44,7 +44,7 @@ export function CategoryGrid() {
           .order("publish_date", { ascending: false })
 
         if (articlesError || !allArticles || allArticles.length === 0) {
-          setCategoriesWithArticles(getDemoCategories())
+          setCategoriesWithArticles([])
           setLoading(false)
           return
         }
@@ -74,7 +74,7 @@ export function CategoryGrid() {
 
         setCategoriesWithArticles(categoriesWithArticles)
       } catch (error) {
-        setCategoriesWithArticles(getDemoCategories())
+        setCategoriesWithArticles([])
       } finally {
         setLoading(false)
       }
@@ -82,194 +82,6 @@ export function CategoryGrid() {
 
     fetchCategoriesWithArticles()
   }, [])
-
-  // Demo data for when database isn't set up
-  function getDemoCategories(): CategoryWithArticles[] {
-    return [
-      {
-        category: {
-          id: "demo-gaming",
-          name: "Gaming",
-          slug: "gaming",
-          description: "Latest gaming news and reviews",
-          color: "#00d4ff",
-          created_at: new Date().toISOString(),
-        },
-        articles: [
-          {
-            id: "demo-1",
-            title: "The Future of Gaming: Next-Gen Consoles Review",
-            slug: "future-gaming-next-gen-consoles",
-            excerpt:
-              "An in-depth look at the latest gaming consoles and what they mean for the future of interactive entertainment.",
-            content: "",
-            featured_image_url: "/placeholder.svg?height=400&width=600",
-            category_id: "demo-gaming",
-            tags: ["gaming", "consoles", "review"],
-            author_id: "demo-author",
-            status: "published" as const,
-            publish_date: new Date().toISOString(),
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            view_count: 1250,
-            seo_meta: null,
-            categories: {
-              id: "demo-gaming",
-              name: "Gaming",
-              slug: "gaming",
-              description: "Latest gaming news and reviews",
-              color: "#00d4ff",
-              created_at: new Date().toISOString(),
-            },
-            users: {
-              id: "demo-author",
-              email: "demo@example.com",
-              username: "gamecritic",
-              display_name: "Alex Chen",
-              avatar_url: "/placeholder.svg?height=40&width=40",
-              bio: "Gaming enthusiast and reviewer",
-              role: "writer" as const,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            },
-          },
-          {
-            id: "demo-2",
-            title: "Indie Games That Changed Everything",
-            slug: "indie-games-changed-everything",
-            excerpt:
-              "Exploring how independent developers revolutionized the gaming industry with creativity and innovation.",
-            content: "",
-            featured_image_url: "/placeholder.svg?height=400&width=600",
-            category_id: "demo-gaming",
-            tags: ["gaming", "indie", "innovation"],
-            author_id: "demo-author",
-            status: "published" as const,
-            publish_date: new Date().toISOString(),
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            view_count: 890,
-            seo_meta: null,
-            categories: {
-              id: "demo-gaming",
-              name: "Gaming",
-              slug: "gaming",
-              description: "Latest gaming news and reviews",
-              color: "#00d4ff",
-              created_at: new Date().toISOString(),
-            },
-            users: {
-              id: "demo-author",
-              email: "demo@example.com",
-              username: "gamecritic",
-              display_name: "Alex Chen",
-              avatar_url: "/placeholder.svg?height=40&width=40",
-              bio: "Gaming enthusiast and reviewer",
-              role: "writer" as const,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            },
-          },
-        ],
-      },
-      {
-        category: {
-          id: "demo-movies",
-          name: "Movies",
-          slug: "movies",
-          description: "Movie reviews and entertainment news",
-          color: "#b347d9",
-          created_at: new Date().toISOString(),
-        },
-        articles: [
-          {
-            id: "demo-3",
-            title: "Blockbuster Season: What to Watch This Summer",
-            slug: "blockbuster-season-summer-movies",
-            excerpt: "Your complete guide to the most anticipated movies hitting theaters this summer season.",
-            content: "",
-            featured_image_url: "/placeholder.svg?height=400&width=600",
-            category_id: "demo-movies",
-            tags: ["movies", "summer", "blockbuster"],
-            author_id: "demo-author-2",
-            status: "published" as const,
-            publish_date: new Date().toISOString(),
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            view_count: 2100,
-            seo_meta: null,
-            categories: {
-              id: "demo-movies",
-              name: "Movies",
-              slug: "movies",
-              description: "Movie reviews and entertainment news",
-              color: "#b347d9",
-              created_at: new Date().toISOString(),
-            },
-            users: {
-              id: "demo-author-2",
-              email: "demo2@example.com",
-              username: "moviebuff",
-              display_name: "Sarah Johnson",
-              avatar_url: "/placeholder.svg?height=40&width=40",
-              bio: "Film critic and entertainment journalist",
-              role: "writer" as const,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            },
-          },
-        ],
-      },
-      {
-        category: {
-          id: "demo-tech",
-          name: "Technology",
-          slug: "tech",
-          description: "Latest tech news and gadget reviews",
-          color: "#ff6b35",
-          created_at: new Date().toISOString(),
-        },
-        articles: [
-          {
-            id: "demo-4",
-            title: "AI Revolution: How Machine Learning is Changing Entertainment",
-            slug: "ai-revolution-entertainment",
-            excerpt: "Exploring the impact of artificial intelligence on gaming, movies, and content creation.",
-            content: "",
-            featured_image_url: "/placeholder.svg?height=400&width=600",
-            category_id: "demo-tech",
-            tags: ["tech", "ai", "entertainment"],
-            author_id: "demo-author-3",
-            status: "published" as const,
-            publish_date: new Date().toISOString(),
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            view_count: 1850,
-            seo_meta: null,
-            categories: {
-              id: "demo-tech",
-              name: "Technology",
-              slug: "tech",
-              description: "Latest tech news and gadget reviews",
-              color: "#ff6b35",
-              created_at: new Date().toISOString(),
-            },
-            users: {
-              id: "demo-author-3",
-              email: "demo3@example.com",
-              username: "techguru",
-              display_name: "Mike Rodriguez",
-              avatar_url: "/placeholder.svg?height=40&width=40",
-              bio: "Technology analyst and reviewer",
-              role: "writer" as const,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            },
-          },
-        ],
-      },
-    ]
-  }
 
   if (loading) {
     return (
@@ -291,8 +103,18 @@ export function CategoryGrid() {
   if (categoriesWithArticles.length === 0) {
     return (
       <div className="text-center py-16">
-        <h3 className="text-2xl font-semibold mb-4">Coming Soon</h3>
-        <p className="text-muted-foreground text-lg">We're preparing amazing content for you. Check back soon!</p>
+        <div className="max-w-md mx-auto">
+          <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center">
+            <span className="text-4xl">📝</span>
+          </div>
+          <h3 className="text-2xl font-semibold mb-4">No Content Yet</h3>
+          <p className="text-muted-foreground text-lg mb-6">
+            Start creating amazing content for your entertainment website.
+          </p>
+          <Button asChild className="glow-effect">
+            <Link href="/admin/articles/new">Create Your First Article</Link>
+          </Button>
+        </div>
       </div>
     )
   }

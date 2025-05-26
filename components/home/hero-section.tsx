@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Calendar, User, Eye, Play } from "lucide-react"
+import { Calendar, User, Eye, PlusCircle } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -74,12 +74,14 @@ export function HeroSection() {
               Your ultimate destination for gaming news, movie reviews, tech updates, and entertainment coverage
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="glow-effect">
-                <Play className="w-5 h-5 mr-2" />
-                Explore Content
+              <Button size="lg" className="glow-effect" asChild>
+                <Link href="/admin/articles/new">
+                  <PlusCircle className="w-5 h-5 mr-2" />
+                  Create First Article
+                </Link>
               </Button>
-              <Button size="lg" variant="outline" className="border-primary/50 hover:bg-primary/10">
-                Latest Reviews
+              <Button size="lg" variant="outline" className="border-primary/50 hover:bg-primary/10" asChild>
+                <Link href="/admin">Admin Panel</Link>
               </Button>
             </div>
           </div>
